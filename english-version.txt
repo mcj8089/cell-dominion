@@ -1,0 +1,31 @@
+Cell Dominion — Game Info (English)
+====================================
+
+Title:
+Cell Dominion — Fast Cell-Capture Strategy
+
+Category:
+Casual (Strategy · Arcade · Territory Control · Puzzle · 2D · Single-player vs CPU · Browser · Free)
+
+TAGS:
+Casual, Strategy, Arcade, Territory Control, Cell Capture, Puzzle, 2D, Single-player, Level-Based, Brain Teaser, Browser Game, HTML5, Free-to-Play, No Download, Desktop and Mobile, Mouse Controls, Touch Controls
+
+Short Description:
+Cell Dominion is a fast cell-capture strategy game. Drag from one of your pink cells to another and a line of troops flies over. Same colour adds strength, enemy colour subtracts it, and a cell reduced to zero flips to your side. Every cell you own grows +1 strength per second, so timing matters as much as aiming. Clear 24 hand-tuned stages, out-manoeuvre up to four enemy commanders, and own the whole board. Free in your browser.
+
+How to Play:
+The board is a scatter of circular cells floating on a dark arena. You own one pink cell on the left. Enemy commanders hold green cells on the right, and a field of grey neutral cells sits in between. Clear a stage by taking every cell on the map.
+
+Drag to attack. Press one of your cells, hold, and drag onto any other cell. A stream of little units flies out at 300 pixels per second, with a slight speed jitter so they spread into a loose line instead of a bullet. The on-field unit cap is 420; past that, no more spawn.
+
+Arithmetic is the whole rule. Troops landing on a friendly cell add one strength each. Troops landing on an enemy or neutral cell take one strength each. When the target cell's strength hits zero, it flips to your colour and starts growing. That is the entire combat model — no damage rolls, no RNG.
+
+Every non-neutral cell grows +1 strength per second. Cells cap at 100. Neutral cells never grow on their own, which is why the middle of the board is a race: take a neutral early and it starts banking strength for you, leave it alone and the nearest enemy commander walks in on it.
+
+Capture pays coins. Flipping a neutral cell pays 3; flipping an enemy cell pays 5. Spend them on the shop: revive a fallen run, call in reinforcements, or double the payout through optional rewarded ads.
+
+Twenty-four hand-tuned stages. Your starting strength climbs from 30 to 60, the enemy multiplier from 0.60 to 0.80, and the neutral count from 2 up to 13. Enemy decision intervals tighten as you climb — Noob commanders think every 6–9 seconds on stage one; the final stages run Smart commanders on a 2–5 second loop.
+
+Three commander personalities pressure you differently. Noob pushes randomly and hesitates. Easy commits to a side. Smart picks your weakest border cell and probes it on a timer. By stage 24, four Smart commanders are all running at once, and you are on a single screen.
+
+Progress saves locally. Free, no install, no account. Drag a line. Pick a flank. Own the board.

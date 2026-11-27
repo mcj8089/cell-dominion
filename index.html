@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>Cell Dominion | pipygames.com</title>
+<meta name="description" content="Cell Dominion - drag from one cell to another to send troops, flip enemy strongholds and own the whole board. Free browser strategy game on pipygames.com." />
+<meta name="theme-color" content="#3f1230" />
+<link rel="icon" href="data:," />
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="pipygames.com" />
+<meta property="og:title" content="Cell Dominion - Drag. Capture. Dominate." />
+<meta property="og:description" content="Send troops between cells, flip enemy nodes and take over the board. Play Cell Dominion free in your browser." />
+<meta property="og:url" content="https://pipygames.com/games/cell-dominion/" />
+<meta property="og:image" content="https://pipygames.com/games/cell-dominion/poster.jpg" />
+<meta property="og:image:secure_url" content="https://pipygames.com/games/cell-dominion/poster.jpg" />
+<meta property="og:image:type" content="image/jpeg" />
+<meta property="og:image:width" content="800" />
+<meta property="og:image:height" content="450" />
+<meta property="og:locale" content="en_US" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Cell Dominion - Drag. Capture. Dominate." />
+<meta name="twitter:description" content="Send troops between cells, flip enemy nodes and take over the board. Play Cell Dominion free in your browser." />
+<meta name="twitter:image" content="https://pipygames.com/games/cell-dominion/poster.jpg" />
+
+<link rel="stylesheet" href="styles.css?v=20261112-5" />
+
+<!-- 全局错误兜底：任何未捕获异常都直接显示在加载页，不再出现「只有 F12 才看得见」的静默失败 -->
+<script>
+  window.__bootErrors = [];
+  function showBootError(msg) {
+    window.__bootErrors.push(msg);
+    // 独立常驻红条：不会被进度条 / bootDone 覆盖，也不会阻断游戏继续启动
+    var box = document.getElementById("boot-err");
+    if (!box && document.body) {
+      box = document.createElement("div");
+      box.id = "boot-err";
+      box.style.cssText = "position:fixed;left:0;right:0;bottom:0;z-index:9999;" +
+        "padding:8px 12px;background:#8b0020;color:#fff;font:12px/1.5 monospace;" +
+        "white-space:pre-wrap;pointer-events:none";
+      document.body.appendChild(box);
+    }
+    if (box) box.textContent = "启动错误 / Boot error: " + msg;
+  }
+  window.addEventListener("error", function (e) {
+    showBootError(e.message || String(e.error || "unknown error"));
+  });
+  window.addEventListener("unhandledrejection", function (e) {
+    var r = e.reason;
+    showBootError("Promise: " + ((r && r.message) || String(r)));
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    if (window.__bootErrors.length && document.getElementById("boot-tip")) {
+      showBootError(window.__bootErrors[0]);       // 错误发生在 body 解析前时补建红条
+    }
+  });
+</script>
+
+<!-- pipysdk 线上异步加载：广告不是启动必需项，CDN 慢 / 离线时自动降级为无广告，绝不阻塞页面解析 -->
+<script async src="https://pipygames.com/sdk/pipysdk.min.js" data-app-id="cell-dominion"></script>
+<!-- 引擎 UMD：本地优先，保证离线单机可跑；业务始终用 window.Phaser，不用 type="module"。
+     仅当本地副本缺失时才同步回退线上，避免 CDN 请求挂起把页面永久卡在加载页。
+     ?v 用于击穿浏览器对已缓存旧脚本的复用（旧脚本曾导致 reading 'sys' 等隐晦错误）。 -->
+<script src="lib/phaser.4.2.1.min.js?v=20261112-4"></script>
+<script>
+  if (!window.Phaser) {
+    document.write('<script src="https://pipygames.com/lib/phaser.4.2.1.min.js?v=20261112-4"><' + '/script>');
+  }
+</script>
+<!-- 本地预览清障：旧游戏可能在同一端口注册过 Service Worker / 写满 Cache Storage，
+     会劫持页面并返回旧脚本，导致一直停在加载页或报引擎内部错误 -->
+<script>
+  if ("serviceWorker" in navigator && /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) {
+    (async () => {
+      const rs = await navigator.serviceWorker.getRegistrations();
+      if (window.caches) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+      if (!rs.length) return false;
+      await Promise.all(rs.map((r) => r.unregister()));
+      return true;
+    })().then((hadSw) => {
+      if (hadSw && !sessionStorage.getItem("cell-dominion-sw-cleared")) {
+        sessionStorage.setItem("cell-dominion-sw-cleared", "1");
+        location.reload();
+      }
+    }).catch(() => { /* 无权限时忽略 */ });
+  }
+</script>
+
+<script type="importmap">
+{
+  "imports": {
+    "config/": "./config/",
+    "core/": "./src/core/",
+    "art/": "./src/art/",
+    "game/": "./src/game/",
+    "ui/": "./src/ui/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="stage">
+  <div id="game-root"></div>
+  <div class="ambient" aria-hidden="true"><i></i><i></i><b></b></div>
+  <div id="ui-root"></div>
+</div>
+<div id="boot" class="boot">
+  <div class="boot__inner">
+    <div class="boot__mark">pipygames<span>.com</span></div>
+    <div class="boot__cell" aria-hidden="true"><i></i></div>
+    <div class="boot__read" id="boot-pct" aria-live="polite">0%</div>
+    <div class="boot__bar"><em id="boot-fill"></em></div>
+    <div class="boot__tip" id="boot-tip">Loading…</div>
+    <div class="boot__ver">Cell Dominion · build 20261112-5</div>
+  </div>
+</div>
+<script type="module" src="src/main.js?v=20261112-5"></script>
+</body>
+</html>

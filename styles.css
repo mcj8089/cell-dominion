@@ -1,0 +1,489 @@
+/* ============================================================
+   Cell Dominion — 「培养皿生物膜」UI 主题（v2 重制）
+   世界观：显微镜下的培养皿战场。面板 = 膜囊，按钮 = 菌饼。
+   全部 CSS 材质绘制（零 UI 生图），决策见 .analysis/ui-theme.md。
+   硬约束：单一圆角族 24/12/6 · 唯一 easing · 双层材质面板 ·
+   等宽数字 · 大写宽字距 · 活背景 · 按钮四态带硬底边。
+   ============================================================ */
+
+:root {
+  /* —— 三档中性 —— */
+  --ink-0: hsl(322 45% 5%);
+  --ink-1: hsl(320 34% 10%);
+  --ink-2: hsl(318 26% 17%);
+  --paper: hsl(320 30% 96%);
+  --dim: hsl(320 18% 64%);
+
+  /* —— 一 primary / 一 secondary / 一 danger —— */
+  --primary: hsl(322 95% 60%);
+  --primary-deep: hsl(322 85% 34%);
+  --primary-soft: hsl(322 95% 80%);
+  --secondary: hsl(190 92% 58%);
+  --secondary-deep: hsl(192 85% 32%);
+  --secondary-soft: hsl(190 95% 78%);
+  --danger: hsl(4 88% 60%);
+  --danger-deep: hsl(4 80% 33%);
+  --danger-soft: hsl(4 90% 78%);
+
+  /* —— 材质与形状 —— */
+  --line: hsl(322 70% 72% / .26);
+  --r-lg: 24px;
+  --r: 12px;
+  --r-s: 6px;
+  --ease: cubic-bezier(.22, 1, .36, 1);
+  --gap: clamp(8px, 1.4vmin, 16px);
+
+  /* —— 字体：数据读数等宽，标签大写宽字距 —— */
+  --font: "Baloo 2", "Nunito", system-ui, "Segoe UI", "Microsoft YaHei", sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", "JetBrains Mono", Consolas, "Courier New", monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; height: 100%; overflow: hidden;
+  background: radial-gradient(120% 100% at 50% 0%, hsl(322 40% 9%), var(--ink-0) 72%);
+  font-family: var(--font);
+  color: var(--paper);
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#stage { position: fixed; inset: 0; display: grid; place-items: center; }
+
+/* 画布：Phaser Scale.FIT 负责等比铺满，这里只保证不出现滚动条 */
+#game-root, #game-root canvas { display: block; }
+#game-root canvas { image-rendering: auto; box-shadow: 0 0 120px rgb(0 0 0 / .6); }
+
+/* —— 活背景：首页态缓慢漂移的光斑 + 培养皿同心环，游戏进行中淡出 —— */
+.ambient {
+  position: absolute; inset: 0; overflow: hidden;
+  pointer-events: none; opacity: 0; transition: opacity .6s var(--ease);
+}
+body.is-menu .ambient { opacity: 1; }
+.ambient i {
+  position: absolute; inline-size: 54vmax; block-size: 54vmax; border-radius: 50%;
+  filter: blur(70px); mix-blend-mode: screen;
+}
+.ambient i:first-child {
+  left: -14vmax; top: -16vmax;
+  background: radial-gradient(circle, hsl(322 90% 55% / .32), transparent 70%);
+  animation: drift-a 38s linear infinite alternate;
+}
+.ambient i:last-child {
+  right: -16vmax; bottom: -18vmax;
+  background: radial-gradient(circle, hsl(190 90% 55% / .24), transparent 70%);
+  animation: drift-b 46s linear infinite alternate;
+}
+.ambient b {
+  position: absolute; inset: 0;
+  background: repeating-radial-gradient(circle at 50% 46%, transparent 0 88px, hsl(322 80% 70% / .05) 88px 91px);
+}
+@keyframes drift-a { from { transform: translate3d(0, 0, 0) scale(1) } to { transform: translate3d(9vmax, 6vmax, 0) scale(1.14) } }
+@keyframes drift-b { from { transform: translate3d(0, 0, 0) scale(1.12) } to { transform: translate3d(-8vmax, -5vmax, 0) scale(.94) } }
+
+#ui-root {
+  position: absolute; inset: 0;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+           max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  pointer-events: none;              /* 只有具体组件吃点击 */
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: var(--gap);
+  font-size: clamp(13px, 1.6vmin, 18px);
+}
+#ui-root > * { pointer-events: auto; }
+
+/* ============================================================
+   1. 按钮 —— 菌饼：描边 + 硬底边阴影 + 裁切 + 四态，无正圆塑料感
+   ============================================================ */
+.btn {
+  --btn-hi: hsl(322 82% 50%);
+  --btn-lo: hsl(322 80% 30%);
+  --btn-edge: hsl(322 90% 16%);
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center; gap: .55em;
+  min-inline-size: 0;
+  padding: .72em 1.4em;                 /* 文字四周留白由 padding 保证 */
+  border: 0; border-radius: var(--r);
+  background: linear-gradient(180deg, var(--btn-hi), var(--btn-lo));
+  color: #fff;
+  font: 700 clamp(13px, 1.5vmin, 17px)/1.15 var(--font);
+  text-shadow: 0 1px 0 rgb(0 0 0 / .4);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .28), inset 0 -8px 14px rgb(0 0 0 / .22),
+              0 4px 0 var(--btn-edge), 0 12px 22px rgb(0 0 0 / .45);
+  cursor: pointer; user-select: none;
+  transition: transform .16s var(--ease), box-shadow .16s var(--ease), filter .16s var(--ease);
+  overflow: hidden;                     /* 裁切内高光 */
+  text-wrap: balance;
+  overflow-wrap: anywhere;              /* 超长文案换行，不允许溢出 */
+}
+.btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08) saturate(1.05);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .32), inset 0 -8px 14px rgb(0 0 0 / .22),
+              0 6px 0 var(--btn-edge), 0 16px 26px rgb(0 0 0 / .5);
+}
+.btn:active {
+  transform: translateY(2px);
+  filter: brightness(.94);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .2), inset 0 -6px 10px rgb(0 0 0 / .25),
+              0 1px 0 var(--btn-edge), 0 4px 10px rgb(0 0 0 / .4);
+}
+.btn:focus-visible { outline: 3px solid var(--primary-soft); outline-offset: 3px; }
+.btn[disabled], .btn.is-off { opacity: .5; filter: grayscale(.7); cursor: not-allowed; transform: none; }
+
+.btn__label {
+  position: relative; z-index: 1;
+  text-transform: uppercase;            /* 拉丁标签大写；中文不受影响 */
+  letter-spacing: .09em;
+}
+.btn__icon { width: 1.25em; height: 1.25em; flex: none; position: relative; z-index: 1; fill: currentColor; }
+.btn-row { display: flex; flex-wrap: wrap; gap: var(--gap); justify-content: center; align-items: center; }
+.btn-row > .btn { flex: 0 1 auto; }
+
+/* 变体：primary（玩家洋红）/ good（青绿）/ warn（危险红）/ ghost（膜壁） */
+.btn--primary { --btn-hi: hsl(322 88% 58%); --btn-lo: hsl(322 85% 34%); --btn-edge: hsl(322 90% 18%); }
+.btn--good    { --btn-hi: hsl(190 90% 52%); --btn-lo: hsl(192 85% 32%); --btn-edge: hsl(192 90% 14%); }
+.btn--warn    { --btn-hi: hsl(4 85% 54%);  --btn-lo: hsl(4 80% 33%);  --btn-edge: hsl(4 85% 14%); }
+.btn--ghost {
+  background: linear-gradient(180deg, var(--ink-2), var(--ink-1));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .14), inset 0 -8px 14px rgb(0 0 0 / .3),
+              0 3px 0 hsl(322 45% 4%), 0 0 0 1px var(--line), 0 10px 18px rgb(0 0 0 / .4);
+}
+.btn--big { font-size: clamp(16px, 2.2vmin, 24px); padding: .8em 1.7em; }
+
+/* 角落图标按钮：12px 圆角方块（不是圆形），文案走 aria-label */
+.btn--bare { padding: .55em; }
+.btn--bare .btn__label { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); }
+.btn--bare .btn__icon { width: 1.45em; height: 1.45em; }
+
+.corner-actions {
+  position: absolute; top: 10px; right: 10px;
+  display: flex; gap: 8px; z-index: 3; pointer-events: none;
+}
+.corner-actions > * { pointer-events: auto; }
+.btn--sound[data-state="off"] { opacity: .55; }
+
+/* ============================================================
+   2. 面板 / 弹窗 —— 膜囊：基底渐变 + 内高光 + 底部沉积内阴影
+   ============================================================ */
+.panel {
+  position: relative; border-radius: var(--r-lg);
+  background: linear-gradient(180deg, hsl(319 32% 12%), var(--ink-0));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .16), inset 0 -22px 34px rgb(0 0 0 / .38),
+              0 0 0 1px var(--line), 0 26px 60px rgb(0 0 0 / .6);
+  padding: calc(var(--gap) * 1.5);
+  display: grid; gap: calc(var(--gap) * 1.1);
+}
+.panel::before {                        /* 膜面反光（第二物理层） */
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: radial-gradient(120% 70% at 50% -12%, rgb(255 255 255 / .1), transparent 58%);
+}
+.panel::after {                         /* 顶部 accent 细线：随弹窗性质变色 */
+  content: ""; position: absolute; top: 0; left: 16%; right: 16%; block-size: 3px;
+  border-radius: var(--r-s); pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--panel-accent, hsl(322 95% 80% / .75)), transparent);
+}
+.panel__title {
+  margin: 0; font-size: clamp(19px, 2.7vmin, 31px); font-weight: 800;
+  text-transform: uppercase; letter-spacing: .08em;
+  text-shadow: 0 2px 0 rgb(0 0 0 / .4);
+}
+.panel__sub { margin: 0; opacity: .82; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* 弹窗变体：过关 = 青绿 / 失败 = 危险红 / 其余默认洋红 */
+.modal__box--win    { --panel-accent: hsl(190 95% 70% / .8); }
+.modal__box--win    .panel__title { color: var(--secondary-soft); text-shadow: 0 2px 12px hsl(190 90% 40% / .45); }
+.modal__box--danger { --panel-accent: hsl(4 90% 70% / .8); }
+.modal__box--danger .panel__title { color: var(--danger-soft); text-shadow: 0 2px 12px hsl(4 85% 40% / .45); }
+
+.modal {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  background: radial-gradient(85% 70% at 50% 42%, rgb(4 2 8 / .5), rgb(4 2 8 / .82));
+  backdrop-filter: blur(6px);
+  animation: fade .25s var(--ease) both;
+  z-index: 30;
+}
+.modal[hidden] { display: none; }
+.modal__box { inline-size: min(560px, 88vw); max-block-size: 86vh; overflow: auto; animation: pop .32s var(--ease) both; }
+
+@keyframes fade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes pop { from { opacity: 0; transform: translateY(12px) scale(.96) } to { opacity: 1; transform: none } }
+
+/* ============================================================
+   3. 首页 —— 标本卡：焦点 = 标题组 + PLAY，其余按亮度递减
+   ============================================================ */
+.menu {
+  inline-size: min(560px, 94vw);
+  justify-items: center; text-align: center;
+  padding: clamp(22px, 4.4vmin, 40px) clamp(18px, 3.6vmin, 34px);
+  gap: calc(var(--gap) * 1.25);
+}
+.menu__head { display: grid; gap: 8px; justify-items: center; }
+.menu .panel__title {
+  font-size: clamp(28px, 5vmin, 46px);
+  background: linear-gradient(180deg, #fff, var(--primary-soft) 58%, var(--primary));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 4px 14px rgb(0 0 0 / .5));
+  text-shadow: none;
+}
+.menu__tag {
+  margin: 0; font-size: clamp(12px, 1.5vmin, 16px); font-weight: 700;
+  text-transform: uppercase; letter-spacing: .18em;
+  color: var(--dim);
+}
+.menu__stats { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.menu .btn-row { inline-size: 100%; }
+.menu .btn-row--side .btn { font-size: clamp(12px, 1.4vmin, 15px); padding: .6em 1.1em; }
+
+/* ============================================================
+   4. HUD / 读数 chip —— 培养皿读数：等宽数字
+   ============================================================ */
+.hud { display: flex; gap: var(--gap); align-items: center; flex-wrap: wrap; justify-content: space-between; }
+.hud__group { display: flex; gap: calc(var(--gap) * .7); align-items: center; flex-wrap: wrap; }
+.chip {
+  display: inline-flex; align-items: center; gap: .45em;
+  padding: .42em .8em; border-radius: var(--r);
+  background: linear-gradient(180deg, var(--ink-2), var(--ink-1));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .14), inset 0 -6px 10px rgb(0 0 0 / .3),
+              0 0 0 1px var(--line), 0 6px 14px rgb(0 0 0 / .35);
+  font-family: var(--mono); font-size: .92em; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.dot { inline-size: .75em; block-size: .75em; border-radius: 50%; box-shadow: 0 0 8px rgb(255 255 255 / .35); }
+
+/* ============================================================
+   5. 开屏加载 —— 菌环加载器 + 真实百分比（焦点 = 读数）
+   ============================================================ */
+.boot {
+  position: fixed; inset: 0; z-index: 50; display: grid; place-items: center;
+  background:
+    radial-gradient(46% 34% at 30% 22%, hsl(322 80% 30% / .35), transparent 70%),
+    radial-gradient(52% 40% at 74% 78%, hsl(190 80% 26% / .28), transparent 70%),
+    radial-gradient(120% 90% at 50% 0%, hsl(322 55% 14%), var(--ink-0) 74%);
+  transition: opacity .5s var(--ease), visibility .5s;
+}
+.boot.is-done { opacity: 0; visibility: hidden; pointer-events: none; }
+.boot__inner { display: grid; gap: 16px; justify-items: center; }
+.boot__mark {
+  font-size: clamp(26px, 5vmin, 54px); font-weight: 900; letter-spacing: .04em;
+  background: linear-gradient(180deg, #fff, var(--primary-soft) 55%, var(--primary-deep));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 6px 18px rgb(0 0 0 / .6));
+}
+.boot__mark span { color: var(--primary); -webkit-text-fill-color: var(--primary); }
+/* 菌环：培养皿母题的加载器，环体匀速旋转，内部菌落呼吸（linear 循环） */
+.boot__cell {
+  position: relative; inline-size: 86px; block-size: 86px; border-radius: 50%;
+  border: 2px dashed hsl(322 85% 68% / .8);
+  box-shadow: 0 0 0 1px var(--line), inset 0 0 26px hsl(322 90% 40% / .3);
+  animation: spin 9s linear infinite;
+}
+.boot__cell i {
+  position: absolute; inset: 17%; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, hsl(322 95% 72%), hsl(322 90% 46%) 58%, transparent 76%);
+  filter: blur(1.5px);
+  animation: blob 2.8s linear infinite alternate;
+}
+.boot__read { font-family: var(--mono); font-size: clamp(20px, 3vmin, 28px); font-weight: 700; letter-spacing: .04em; }
+.boot__bar {
+  inline-size: min(320px, 70vw); block-size: 8px; border-radius: var(--r-s);
+  background: var(--ink-1); box-shadow: 0 0 0 1px var(--line), 0 2px 6px rgb(0 0 0 / .6) inset;
+  overflow: hidden;
+}
+.boot__bar em {
+  display: block; block-size: 100%; inline-size: 0%;
+  background: linear-gradient(90deg, var(--primary-deep), var(--primary), var(--primary-soft));
+  box-shadow: 0 0 14px hsl(322 95% 70% / .6);
+  transition: width .2s var(--ease);
+}
+.boot__tip { opacity: .72; font-weight: 700; font-size: clamp(12px, 1.5vmin, 15px); text-transform: uppercase; letter-spacing: .14em; }
+.boot__ver { margin-top: 10px; font-size: 11px; letter-spacing: .1em; opacity: .45; font-weight: 700; font-family: var(--mono); }
+@keyframes spin { to { transform: rotate(360deg) } }
+@keyframes blob { from { transform: scale(.82); opacity: .7 } to { transform: scale(1.04); opacity: 1 } }
+
+/* ============================================================
+   6. 分享面板
+   ============================================================ */
+.share { display: grid; gap: var(--gap); }
+.share__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); gap: 10px; }
+.share__item {
+  display: grid; justify-items: center; gap: 6px; padding: 10px 6px; border: 0; border-radius: var(--r);
+  background: linear-gradient(180deg, var(--ink-2), var(--ink-1));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .12), 0 3px 0 hsl(322 45% 4%), 0 0 0 1px var(--line);
+  color: var(--paper); font: 700 11px/1.2 var(--font);
+  text-transform: uppercase; letter-spacing: .06em;
+  cursor: pointer;
+  transition: transform .16s var(--ease), filter .16s var(--ease);
+}
+.share__item:hover { transform: translateY(-2px); filter: brightness(1.12); }
+.share__item:active { transform: translateY(1px); filter: brightness(.9); }
+.share__item:focus-visible { outline: 3px solid var(--primary-soft); outline-offset: 2px; }
+.share__item svg { inline-size: 26px; block-size: 26px; fill: currentColor; }
+.share__field { display: flex; gap: 8px; align-items: center; }
+.input {
+  flex: 1; padding: .6em .8em; border-radius: var(--r); border: 0;
+  box-shadow: 0 0 0 1px var(--line), 0 2px 8px rgb(0 0 0 / .4) inset;
+  background: hsl(320 40% 8% / .9); color: var(--paper);
+  font: 600 14px var(--font); font-variant-numeric: tabular-nums;
+}
+.input:focus-visible { outline: 3px solid var(--primary-soft); outline-offset: 2px; }
+
+/* ============================================================
+   7. 新手引导
+   ============================================================ */
+.guide {
+  position: absolute; inset: 0; display: grid; place-items: center; z-index: 25;
+  background: radial-gradient(80% 62% at 50% 42%, rgb(6 2 10 / .52), rgb(6 2 10 / .86));
+  backdrop-filter: blur(5px);
+}
+#ui-root > .guide { pointer-events: none; }   /* 遮罩不拦手势：点卡片外围仍可拖拽照做 */
+#ui-root.is-guiding > .menu { visibility: hidden; }
+.guide[hidden] { display: none; }
+.guide__card {
+  inline-size: min(660px, 92vw); max-block-size: 90vh; overflow: auto; pointer-events: auto;
+  gap: calc(var(--gap) * 1.1); padding: calc(var(--gap) * 1.6);
+  animation: pop .35s var(--ease) both;
+}
+.guide__head { display: grid; gap: 6px; text-align: center; }
+.guide__card .panel__title {
+  font-size: clamp(20px, 3vmin, 32px);
+  background: linear-gradient(180deg, #fff, var(--primary-soft) 62%, var(--primary));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 2px 6px rgb(0 0 0 / .45));
+  text-shadow: none;
+}
+.guide__sub { margin: 0; opacity: .9; font-weight: 600; }
+
+/* 机制演示：棋盘底纹 + 己方节点 →(虚线箭头)→ 敌方节点 + 结算标签 */
+.guide__demo {
+  display: grid; gap: 14px; justify-items: center; padding: 16px 14px; border-radius: var(--r);
+  background:
+    radial-gradient(120% 100% at 50% 0%, hsl(322 55% 24% / .5), transparent 70%),
+    repeating-linear-gradient(90deg, hsl(322 60% 70% / .07) 0 1px, transparent 1px 26px),
+    repeating-linear-gradient(0deg, hsl(322 60% 70% / .07) 0 1px, transparent 1px 26px),
+    linear-gradient(180deg, hsl(319 40% 13% / .8), hsl(320 42% 6% / .72));
+  box-shadow: 0 0 0 1px var(--line), 0 10px 22px rgb(0 0 0 / .35) inset;
+}
+.guide__demo-row { display: flex; align-items: center; gap: 18px; }
+.demo-cell {
+  position: relative; display: grid; place-items: center;
+  inline-size: clamp(52px, 9vmin, 66px); block-size: clamp(52px, 9vmin, 66px); border-radius: 50%;
+  font: 900 clamp(19px, 3.2vmin, 24px)/1 var(--mono); color: #fff;
+  box-shadow: 0 0 0 3px rgb(255 255 255 / .24), 0 10px 20px rgb(0 0 0 / .5);
+}
+.demo-cell::after {                       /* 呼吸光环（linear 循环） */
+  content: ""; position: absolute; inset: -7px; border-radius: 50%; pointer-events: none;
+  box-shadow: 0 0 0 2px hsl(322 92% 70% / .35);
+  animation: halo 2.2s linear infinite;
+}
+.demo-cell--own {
+  background: radial-gradient(circle at 35% 30%, hsl(322 95% 74%), hsl(322 85% 34%));
+  animation: pop .4s var(--ease) both;
+}
+.demo-cell--foe {
+  background: radial-gradient(circle at 35% 30%, hsl(190 92% 76%), hsl(192 85% 34%));
+  animation: pop .4s var(--ease) .1s both;
+}
+.demo-cell--foe::after { box-shadow: 0 0 0 2px hsl(190 90% 74% / .3); animation-delay: .6s; }
+@keyframes halo { 0%, 100% { transform: scale(1); opacity: .5 } 50% { transform: scale(1.08); opacity: 1 } }
+
+.demo-arrow { position: relative; inline-size: clamp(56px, 9vmin, 72px); color: var(--primary-soft); }
+.demo-arrow svg { display: block; inline-size: 100%; block-size: 22px; }
+.demo-arrow__line { fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 7 6;
+  animation: dash 1.1s linear infinite; }
+.demo-arrow__head { fill: currentColor; }
+.demo-arrow__troop { fill: #fff; filter: drop-shadow(0 0 5px hsl(322 95% 80%));
+  animation: troop 1.5s linear infinite; }
+@keyframes dash { to { stroke-dashoffset: -26 } }
+@keyframes troop { 0% { transform: translateX(0); opacity: 0 } 18% { opacity: 1 } 82% { opacity: 1 } 100% { transform: translateX(44px); opacity: 0 } }
+
+.guide__demo-chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.demo-chip {
+  padding: .32em .9em; border-radius: var(--r); font: 800 13px/1 var(--mono);
+  background: linear-gradient(180deg, var(--ink-2), var(--ink-1));
+  box-shadow: 0 0 0 1px var(--line), 0 3px 10px rgb(0 0 0 / .35);
+}
+.demo-chip--same   { color: var(--secondary-soft); box-shadow: 0 0 0 1px hsl(190 80% 60% / .45), 0 3px 10px rgb(0 0 0 / .35); }
+.demo-chip--other  { color: var(--danger-soft);    box-shadow: 0 0 0 1px hsl(4 85% 62% / .45), 0 3px 10px rgb(0 0 0 / .35); }
+.demo-chip--zero   { color: hsl(48 96% 72%);       box-shadow: 0 0 0 1px hsl(48 86% 60% / .45), 0 3px 10px rgb(0 0 0 / .35); }
+
+/* 规则卡：序号徽章（方形，圆角族内）+ 左侧强调条，逐条淡入 */
+.guide__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.guide__step {
+  position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start;
+  padding: 11px 13px; border-radius: var(--r);
+  background: linear-gradient(180deg, hsl(318 26% 16%), hsl(320 34% 8%));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .12), 0 0 0 1px var(--line), 0 6px 16px rgb(0 0 0 / .28);
+  animation: stepIn .4s var(--ease) both;
+}
+.guide__step::before {
+  content: ""; position: absolute; left: 0; top: 18%; bottom: 18%; inline-size: 3px;
+  border-radius: var(--r-s);
+  background: linear-gradient(180deg, var(--primary-soft), var(--primary-deep));
+}
+.guide__step:nth-child(1) { animation-delay: .06s }
+.guide__step:nth-child(2) { animation-delay: .12s }
+.guide__step:nth-child(3) { animation-delay: .18s }
+.guide__step:nth-child(4) { animation-delay: .24s }
+@keyframes stepIn { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+.guide__no {
+  display: grid; place-items: center; inline-size: 1.8em; block-size: 1.8em; border-radius: var(--r-s);
+  background: linear-gradient(180deg, var(--primary-soft), var(--primary-deep));
+  color: #fff; font: 900 .95em/1 var(--mono);
+  box-shadow: 0 2px 0 var(--primary-deep), 0 4px 10px rgb(0 0 0 / .4);
+}
+.guide__txt { font-weight: 600; overflow-wrap: anywhere; }
+.guide__foot { display: flex; align-items: center; justify-content: center; gap: 8px; opacity: .9; font-weight: 600; }
+
+.key {
+  display: inline-grid; place-items: center; min-inline-size: 2.2em; padding: .35em .5em; border-radius: var(--r-s);
+  background: linear-gradient(180deg, hsl(220 14% 96%), hsl(220 10% 72%)); color: #16161c;
+  font: 800 1em var(--mono);
+  box-shadow: 0 3px 0 hsl(220 8% 42%), 0 6px 12px rgb(0 0 0 / .5);
+}
+.key--tap {
+  background: linear-gradient(180deg, var(--primary-soft), var(--primary-deep)); color: #fff;
+  box-shadow: 0 3px 0 var(--primary-deep), 0 6px 12px rgb(0 0 0 / .5);
+}
+.pulse { animation: pulse 1.6s linear infinite; }
+@keyframes pulse {
+  0%   { box-shadow: inset 0 1px 0 rgb(255 255 255 / .28), 0 4px 0 var(--btn-edge), 0 12px 22px rgb(0 0 0 / .45),
+                     0 0 0 1px hsl(322 95% 84% / .5), 0 0 0 0 hsl(322 90% 65% / .5) }
+  100% { box-shadow: inset 0 1px 0 rgb(255 255 255 / .28), 0 4px 0 var(--btn-edge), 0 12px 22px rgb(0 0 0 / .45),
+                     0 0 0 1px hsl(322 95% 84% / .5), 0 0 0 26px hsl(322 90% 65% / 0) }
+}
+
+/* ============================================================
+   8. 触屏控制 / 通用
+   ============================================================ */
+body.pg-touch .touch-controls { display: grid; }
+body:not(.pg-touch) .touch-controls { display: none; }
+.touch-controls {
+  position: absolute; inset: auto 0 0 0; padding: 14px; z-index: 20;
+  grid-template-columns: repeat(3, auto); justify-content: space-between; align-items: end; pointer-events: none;
+}
+.touch-controls .btn { pointer-events: auto; opacity: .85; }
+
+.toast {
+  position: absolute; left: 50%; bottom: 12%; transform: translateX(-50%);
+  padding: .6em 1.2em; border-radius: var(--r);
+  background: linear-gradient(180deg, var(--ink-2), var(--ink-1));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .14), 0 0 0 1px var(--line), 0 12px 26px rgb(0 0 0 / .5);
+  font-weight: 800;
+  animation: pop .25s var(--ease) both; z-index: 40;
+}
+
+@media (max-width: 620px) {
+  .guide__grid { grid-template-columns: 1fr; }
+  .guide__card { gap: var(--gap); padding: calc(var(--gap) * 1.2); max-block-size: 92vh; }
+  .guide__step { padding: 9px 11px; }
+}
+@media (max-aspect-ratio: 1/1) {          /* 竖屏设备：仍按横屏比例铺满，不做 9:16 竖屏 */
+  #ui-root { font-size: clamp(12px, 2.4vmin, 16px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  .boot__bar em { inline-size: 60%; }     /* 降级时进度条仍显示真实进度，不做静态装饰 */
+}

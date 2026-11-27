@@ -1,0 +1,19 @@
+{
+  "dir": "assets/images/frames/",
+  "canvas": 256,
+  "baseline": 16,
+  "characters": {
+    "unit": {
+      "scale": 1,
+      "actions": {
+        "idle": { "type": "loop", "frames": 4, "fps": 14 }
+      }
+    }
+  },
+  "fx": {
+    "capture": { "type": "once", "frames": 4, "fps": 16 },
+    "hit": { "type": "once", "frames": 3, "fps": 20 },
+    "plusone": { "type": "once", "frames": 3, "fps": 14 },
+    "coin": { "type": "once", "frames": 3, "fps": 16 }
+  }
+}
